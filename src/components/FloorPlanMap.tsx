@@ -9,6 +9,7 @@ import {
 } from 'react-leaflet'
 import L, { LatLngTuple } from 'leaflet'
 import floorplan from './floorplan.jpg' // Make sure the image is in the correct path
+import { useEffect, useState } from 'react'
 
 const imageWidth = 10
 const imageHeight = imageWidth * (floorplan.height / floorplan.width)
@@ -43,17 +44,8 @@ const data = {
     { name: 'O', coordinates: [4.61328125, -10.6953125] },
     { name: 'P', coordinates: [4.25390625, -10.8828125] },
     { name: 'Q', coordinates: [4.94140625, -10.49609375] },
-    { name: 'R', coordinates: [5.484375, -9.921875] },
-    { name: 'S', coordinates: [5.7265625, -9.5546875] },
-    { name: 'T', coordinates: [5.93359375, -9.25390625] },
-    { name: 'U', coordinates: [6.2421875, -8.5625] },
-    { name: 'V', coordinates: [6.3515625, -8.1875] },
-    { name: 'W', coordinates: [5.984375, -8.08203125] },
-    { name: 'X', coordinates: [5.84375, -8.4375] },
-    { name: 'Y', coordinates: [3.56640625, -11.24609375] },
-  ] as { name: string; coordinates: LatLngTuple }[],
+  ],
   paths: [
-    ['Y', 'B'],
     ['B', 'C'],
     ['C', 'D'],
     ['D', 'E'],
@@ -81,54 +73,88 @@ const data = {
     { name: 'B1', coordinates: [3.84765625, -10.890625] },
     { name: 'B2', coordinates: [4.15625, -10.07421875] },
     { name: 'B3', coordinates: [5.0859375, -10.046875] },
-    { name: 'B4', coordinates: [5.09375, -9.12109375] },
-    { name: 'B5', coordinates: [5.921875, -8.82421875] },
-  ] as { name: string; coordinates: LatLngTuple }[],
+  ],
+}
+
+function findShortestPath(start: string, end: string) {
+  const distances: Record<string, number> = {}
+  const previous: Record<string, string | null> = {}
+  const queue: string[] = []
+
+  data.nodes.forEach((node) => {
+    distances[node.name] = Infinity
+    previous[node.name] = null
+    queue.push(node.name)
+  })
+
+  distances[start] = 0
+
+  while (queue.length) {
+    queue.sort((a, b) => distances[a] - distances[b])
+    const current = queue.shift()!
+
+    if (current === end) break
+
+    data.paths.forEach(([nodeA, nodeB]) => {
+      if (current === nodeA || current === nodeB) {
+        const neighbor = current === nodeA ? nodeB : nodeA
+        if (!queue.includes(neighbor)) return
+
+        const alt = distances[current] + 1
+        if (alt < distances[neighbor]) {
+          distances[neighbor] = alt
+          previous[neighbor] = current
+        }
+      }
+    })
+  }
+
+  const path: string[] = []
+  let step: string | null = end
+  while (step) {
+    path.unshift(step)
+    step = previous[step]
+  }
+
+  return path
 }
 
 export default function FloorPlanMap() {
+  const [shortestPath, setShortestPath] = useState<string[]>([])
+
+  useEffect(() => {
+    window.addEventListener('message', (event) => {
+      if (event.data && event.data.start && event.data.end) {
+        setShortestPath(findShortestPath(event.data.start, event.data.end))
+      }
+    })
+  }, [])
+
   return (
     <div style={{ height: '100vh', width: '100%' }}>
       <MapContainer
         center={[imageWidth / 2, -imageHeight / 2]}
-        zoom={1}
+        zoom={6.5}
         style={{ height: '100%', width: '100%' }}
         crs={L.CRS.Simple}
       >
         <ImageOverlay url={floorplan.src} bounds={bounds} />
 
-        {data.nodes.map((node) => (
-          <Marker key={node.name} position={node.coordinates}>
-            <Popup>{`${node.name}: [${node.coordinates[0].toFixed(
-              2
-            )}, ${node.coordinates[1].toFixed(2)}]`}</Popup>
-          </Marker>
-        ))}
-
-        {data.paths.map((path, index) => {
-          const startNode = data.nodes.find((node) => node.name === path[0])
-          const endNode = data.nodes.find((node) => node.name === path[1])
-          if (!startNode || !endNode) return null
-          return (
-            <Polyline
-              key={index}
-              positions={[startNode.coordinates, endNode.coordinates]}
-              color="blue"
-            />
-          )
-        })}
-
-        {data.beacons.map((beacon) => (
-          <Marker
-            key={beacon.name}
-            position={beacon.coordinates}
-            icon={beaconIcon}
-          >
-            <Popup>{`Beacon ${beacon.name}: [${beacon.coordinates[0].toFixed(
-              2
-            )}, ${beacon.coordinates[1].toFixed(2)}]`}</Popup>
-          </Marker>
-        ))}
+        {shortestPath.length > 1 && (
+          <Polyline
+            positions={shortestPath
+              .map(
+                (name) =>
+                  data.nodes.find((node) => node.name === name)
+                    ?.coordinates as LatLngTuple
+              )
+              .filter(
+                (coord): coord is LatLngTuple =>
+                  Array.isArray(coord) && coord.length === 2
+              )}
+            color="red"
+          />
+        )}
       </MapContainer>
     </div>
   )

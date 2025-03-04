@@ -19,12 +19,12 @@ const bounds: [[number, number], [number, number]] = [
   [imageWidth, -imageHeight],
 ]
 
-const beaconIcon = new L.Icon({
-  iconUrl: '/beacon.svg',
-  iconSize: [24, 24],
-  iconAnchor: [12, 12],
-  popupAnchor: [0, -12],
-})
+// const beaconIcon = new L.Icon({
+//   iconUrl: '/beacon.svg',
+//   iconSize: [24, 24],
+//   iconAnchor: [12, 12],
+//   popupAnchor: [0, -12],
+// })
 
 const data = {
   nodes: [

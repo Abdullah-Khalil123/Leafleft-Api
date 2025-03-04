@@ -1,8 +1,4 @@
-import dynamic from 'next/dynamic'
-
-const FloorPlanMap = dynamic(() => import('@/components/FloorPlanMap'), {
-  ssr: false, // Prevents server-side rendering issues
-})
+import FloorPlanMap from '@/components/FloorPlanMap'
 
 export default function FloorPage() {
   return <FloorPlanMap />

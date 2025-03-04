@@ -3,8 +3,8 @@
 import {
   MapContainer,
   ImageOverlay,
-  Marker,
-  Popup,
+  //   Marker,
+  //   Popup,
   Polyline,
 } from 'react-leaflet'
 import L, { LatLngTuple } from 'leaflet'

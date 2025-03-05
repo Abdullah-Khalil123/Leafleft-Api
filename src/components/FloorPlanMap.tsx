@@ -70,9 +70,26 @@ const data = {
     ['Q', 'O'],
   ],
   beacons: [
-    { name: 'B1', coordinates: [3.84765625, -10.890625] },
-    { name: 'B2', coordinates: [4.15625, -10.07421875] },
-    { name: 'B3', coordinates: [5.0859375, -10.046875] },
+    {
+      name: 'B1',
+      coordinates: [3.84765625, -10.890625],
+    },
+    {
+      name: 'B2',
+      coordinates: [4.15625, -10.07421875],
+    },
+    {
+      name: 'B3',
+      coordinates: [5.0859375, -10.046875],
+    },
+    {
+      name: 'B4',
+      coordinates: [5.09375, -9.12109375],
+    },
+    {
+      name: 'B5',
+      coordinates: [5.921875, -8.82421875],
+    },
   ],
 }
 

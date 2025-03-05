@@ -1,6 +1,12 @@
 'use client'
 
-import { MapContainer, ImageOverlay, Marker, Polyline } from 'react-leaflet'
+import {
+  MapContainer,
+  ImageOverlay,
+  Marker,
+  Polyline,
+  Popup,
+} from 'react-leaflet'
 import L, { LatLngTuple } from 'leaflet'
 import floorplan from './floorplan.jpg'
 import { useEffect, useState } from 'react'
@@ -21,78 +27,6 @@ const beaconIcon = new L.Icon({
   iconAnchor: [12, 12], // Center the icon correctly
   popupAnchor: [0, -12],
 })
-
-// const data = {
-//   nodes: [
-//     { name: 'B', coordinates: [3.203125, -11.34375] },
-//     { name: 'C', coordinates: [3.078125, -10.9375] },
-//     { name: 'D', coordinates: [3.8203125, -10.6796875] },
-//     { name: 'E', coordinates: [4.0078125, -10.53515625] },
-//     { name: 'F', coordinates: [4.36328125, -10.2578125] },
-//     { name: 'G', coordinates: [4.7265625, -9.90625] },
-//     { name: 'H', coordinates: [4.9375, -9.70703125] },
-//     { name: 'I', coordinates: [5.55859375, -8.9453125] },
-//     { name: 'J', coordinates: [5.33203125, -9.33203125] },
-//     { name: 'K', coordinates: [4.51953125, -9.32421875] },
-//     { name: 'L', coordinates: [5.19140625, -8.58203125] },
-//     { name: 'M', coordinates: [4.34765625, -9.515625] },
-//     { name: 'N', coordinates: [3.62109375, -10.2109375] },
-//     { name: 'O', coordinates: [4.61328125, -10.6953125] },
-//     { name: 'P', coordinates: [4.25390625, -10.8828125] },
-//     { name: 'Q', coordinates: [4.94140625, -10.49609375] },
-//   ],
-//   paths: [
-//     ['B', 'C'],
-//     ['C', 'D'],
-//     ['D', 'E'],
-//     ['E', 'N'],
-//     ['E', 'F'],
-//     ['F', 'G'],
-//     ['G', 'M'],
-//     ['H', 'G'],
-//     ['H', 'K'],
-//     ['H', 'J'],
-//     ['J', 'I'],
-//     ['I', 'L'],
-//     ['S', 'J'],
-//     ['S', 'R'],
-//     ['S', 'T'],
-//     ['I', 'X'],
-//     ['X', 'W'],
-//     ['V', 'W'],
-//     ['U', 'V'],
-//     ['O', 'F'],
-//     ['O', 'P'],
-//     ['Q', 'O'],
-//   ],
-//   beacons: [
-//     {
-//       name: 'B1',
-//       Mac: '45:C6:6A:F1:63:56',
-//       coordinates: [3.84765625, -10.890625],
-//     },
-//     {
-//       name: 'B2',
-//       Mac: '45:C6:6A:F1:71:45',
-//       coordinates: [4.15625, -10.07421875],
-//     },
-//     {
-//       name: 'B3',
-//       Mac: '45:C6:6A:F1:65:03',
-//       coordinates: [5.0859375, -10.046875],
-//     },
-//     {
-//       name: 'B4',
-//       Mac: '45:C6:6A:F1:64:27',
-//       coordinates: [5.09375, -9.12109375],
-//     },
-//     {
-//       name: 'B5',
-//       Mac: '45:C6:6A:F1:64:58',
-//       coordinates: [5.921875, -8.82421875],
-//     },
-//   ],
-// }
 
 function findShortestPath(start: string, end: string) {
   const distances: Record<string, number> = {}
@@ -158,13 +92,24 @@ export default function FloorPlanMap() {
       >
         <ImageOverlay url={floorplan.src} bounds={bounds} />
 
-        {/* ✅ Display Beacon Icons on the Map */}
+        {/* ✅ Display Beacon Icons with Information */}
         {data.beacons.map((beacon) => (
           <Marker
             key={beacon.name}
             position={beacon.coordinates as LatLngTuple}
             icon={beaconIcon}
-          />
+          >
+            <Popup>
+              <strong>{beacon.name}</strong>
+              <br />
+              MAC: {beacon.Mac}
+              <br />
+              coord: {'['}
+              {beacon.coordinates[0].toFixed(2)} ,
+              {beacon.coordinates[1].toFixed(2)}
+              {']'}
+            </Popup>
+          </Marker>
         ))}
 
         {/* ✅ Draw Shortest Path */}

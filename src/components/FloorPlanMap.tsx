@@ -81,7 +81,6 @@ export default function FloorPlanMap() {
   const [userPosition, setUserPosition] = useState<LatLngTuple | null>(null)
 
   useEffect(() => {
-    let lastStart: string | null = null
     let lastEnd: string | null = null
 
     window.addEventListener('message', (event) => {
@@ -89,7 +88,6 @@ export default function FloorPlanMap() {
         const { start, end, userCoords } = event.data
 
         if (start && end) {
-          lastStart = start
           lastEnd = end
           setShortestPath(findShortestPath(start, end))
 
@@ -101,7 +99,6 @@ export default function FloorPlanMap() {
           const userNode = data.nodes.find((node) => node.name === userCoords)
           if (userNode) {
             setUserPosition(userNode.coordinates as LatLngTuple)
-            lastStart = userCoords // Update start position when user moves
 
             if (lastEnd) {
               setShortestPath(findShortestPath(userCoords, lastEnd))

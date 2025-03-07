@@ -302,3 +302,157 @@ export default function FloorPlanMap() {
     </div>
   )
 }
+
+
+/////////// clicker
+
+'use client'
+
+import { useState, useCallback } from 'react'
+import {
+  MapContainer,
+  ImageOverlay,
+  Marker,
+  Popup,
+  Polyline,
+  useMapEvents,
+} from 'react-leaflet'
+import L from 'leaflet'
+import floorplan from './floorplan.jpg'
+
+const imageWidth = 10 // Adjust based on your image's aspect ratio
+const imageHeight = imageWidth * (floorplan.height / floorplan.width)
+
+const bounds: [[number, number], [number, number]] = [
+  [0, 0], // Top-left corner
+  [imageWidth, -imageHeight], // Bottom-right corner (negative to prevent flipping)
+]
+
+export default function FloorPlanMap() {
+  const [points, setPoints] = useState<{ [key: string]: [number, number] }>({})
+  const [counter, setCounter] = useState(65) // ASCII 'A'
+  const [paths, setPaths] = useState<[string, string][]>([])
+  const [selectedPoints, setSelectedPoints] = useState<string[]>([])
+
+  const handleMapClick = useCallback(
+    (e) => {
+      console.log('Map clicked at:', e.latlng)
+      if (e.originalEvent.ctrlKey) {
+        handleCtrlClick(e)
+        return
+      }
+      setPoints((prev) => {
+        const newPointKey = String.fromCharCode(counter)
+        console.log('Adding point:', newPointKey, e.latlng)
+        return { ...prev, [newPointKey]: [e.latlng.lat, e.latlng.lng] }
+      })
+      setCounter((prev) => prev + 1)
+    },
+    [counter]
+  )
+
+  const handleRightClick = useCallback((e) => {
+    console.log('Right-click at:', e.latlng)
+    setPoints((prev) => {
+      const closestKey = Object.keys(prev).find(
+        (key) =>
+          Math.abs(prev[key][0] - e.latlng.lat) < 0.1 &&
+          Math.abs(prev[key][1] - e.latlng.lng) < 0.1
+      )
+      if (!closestKey) return prev
+      console.log('Removing point:', closestKey)
+      const newPoints = { ...prev }
+      delete newPoints[closestKey]
+      return newPoints
+    })
+  }, [])
+
+  const handleCtrlClick = useCallback(
+    (e) => {
+      console.log('Ctrl-click at:', e.latlng)
+      const clickedKey = Object.keys(points).find(
+        (key) =>
+          Math.abs(points[key][0] - e.latlng.lat) < 0.1 &&
+          Math.abs(points[key][1] - e.latlng.lng) < 0.1
+      )
+      if (!clickedKey) return
+
+      setSelectedPoints((prev) => {
+        if (prev.length === 1) {
+          console.log('Creating path between:', prev[0], 'and', clickedKey)
+          setPaths((paths) => {
+            const newPath: [string, string] = [prev[0], clickedKey]
+            const isDuplicate = paths.some(
+              (path) =>
+                (path[0] === newPath[0] && path[1] === newPath[1]) ||
+                (path[0] === newPath[1] && path[1] === newPath[0])
+            )
+            if (!isDuplicate) {
+              return [...paths, newPath]
+            }
+            return paths
+          })
+          return []
+        }
+        console.log('First point selected for path:', clickedKey)
+        return [clickedKey]
+      })
+    },
+    [points]
+  )
+
+  const copyDataToClipboard = () => {
+    const data = {
+      nodes: Object.entries(points).map(([key, coord]) => ({
+        name: key,
+        coordinates: coord,
+      })),
+      paths: paths,
+    }
+    navigator.clipboard.writeText(JSON.stringify(data, null, 2))
+    console.log('Copied data to clipboard:', data)
+    alert('Node and path data copied to clipboard!')
+  }
+
+  function MapClickHandler() {
+    useMapEvents({
+      click: handleMapClick,
+      contextmenu: handleRightClick,
+    })
+    return null
+  }
+
+  return (
+    <div style={{ height: '100vh', width: '100%' }}>
+      <button
+        onClick={copyDataToClipboard}
+        style={{ position: 'absolute', top: 10, right: 10, zIndex: 1000 }}
+      >
+        Copy Nodes & Paths
+      </button>
+      <MapContainer
+        center={[imageWidth / 2, -imageHeight / 2]}
+        zoom={1}
+        style={{ height: '100%', width: '100%' }}
+        crs={L.CRS.Simple} // Ensures correct scaling for image overlays
+      >
+        <ImageOverlay url={floorplan.src} bounds={bounds} />
+        <MapClickHandler />
+        {Object.entries(points).map(([key, coord]) => (
+          <Marker key={key} position={coord}>
+            <Popup>{`${key}: [${coord[0].toFixed(2)}, ${coord[1].toFixed(
+              2
+            )}]`}</Popup>
+          </Marker>
+        ))}
+        {paths.map((path, index) => (
+          <Polyline
+            key={index}
+            positions={[points[path[0]], points[path[1]]]}
+            color="blue"
+          />
+        ))}
+      </MapContainer>
+    </div>
+  )
+}

@@ -20,12 +20,17 @@ const bounds: [[number, number], [number, number]] = [
   [imageWidth, -imageHeight],
 ]
 
-// ✅ Define a custom beacon icon
 const beaconIcon = new L.Icon({
-  iconUrl: '/beacon.svg', // Ensure the image is in the public folder
-  iconSize: [24, 24], // Adjust size as needed
-  iconAnchor: [12, 12], // Center the icon correctly
+  iconUrl: '/beacon.svg',
+  iconSize: [24, 24],
+  iconAnchor: [12, 12],
   popupAnchor: [0, -12],
+})
+
+const endIcon = new L.DivIcon({
+  className: 'custom-end-marker',
+  html: '<div style="background: blue; width: 20px; height: 20px; border-radius: 50%; border: 2px solid white;"></div>',
+  iconSize: [20, 20],
 })
 
 function findShortestPath(start: string, end: string) {
@@ -73,11 +78,36 @@ function findShortestPath(start: string, end: string) {
 
 export default function FloorPlanMap() {
   const [shortestPath, setShortestPath] = useState<string[]>([])
+  const [userPosition, setUserPosition] = useState<LatLngTuple | null>(null)
 
   useEffect(() => {
+    let lastStart: string | null = null
+    let lastEnd: string | null = null
+
     window.addEventListener('message', (event) => {
-      if (event.data && event.data.start && event.data.end) {
-        setShortestPath(findShortestPath(event.data.start, event.data.end))
+      if (event.data) {
+        const { start, end, userCoords } = event.data
+
+        if (start && end) {
+          lastStart = start
+          lastEnd = end
+          setShortestPath(findShortestPath(start, end))
+
+          const startNode = data.nodes.find((node) => node.name === start)
+          if (startNode) {
+            setUserPosition(startNode.coordinates as LatLngTuple)
+          }
+        } else if (userCoords) {
+          const userNode = data.nodes.find((node) => node.name === userCoords)
+          if (userNode) {
+            setUserPosition(userNode.coordinates as LatLngTuple)
+            lastStart = userCoords // Update start position when user moves
+
+            if (lastEnd) {
+              setShortestPath(findShortestPath(userCoords, lastEnd))
+            }
+          }
+        }
       }
     })
   }, [])
@@ -92,7 +122,6 @@ export default function FloorPlanMap() {
       >
         <ImageOverlay url={floorplan.src} bounds={bounds} />
 
-        {/* ✅ Display Beacon Icons with Information */}
         {data.beacons.map((beacon) => (
           <Marker
             key={beacon.name}
@@ -104,15 +133,12 @@ export default function FloorPlanMap() {
               <br />
               MAC: {beacon.Mac}
               <br />
-              coord: {'['}
-              {beacon.coordinates[0].toFixed(2)} ,
-              {beacon.coordinates[1].toFixed(2)}
-              {']'}
+              coord: [{beacon.coordinates[0].toFixed(2)},{' '}
+              {beacon.coordinates[1].toFixed(2)}]
             </Popup>
           </Marker>
         ))}
 
-        {/* ✅ Draw Shortest Path */}
         {shortestPath.length > 1 && (
           <Polyline
             positions={shortestPath
@@ -125,8 +151,31 @@ export default function FloorPlanMap() {
                 (coord): coord is LatLngTuple =>
                   Array.isArray(coord) && coord.length === 2
               )}
-            color="red"
+            color="#317dc6"
+            weight={5} // Line thickness
+            lineCap="round" // Rounded edges
+            lineJoin="round" // Smooth joins
+            dashArray="10, 10" // Dashed pattern: 10px dash, 10px gap
           />
+        )}
+
+        {userPosition && (
+          <Marker position={userPosition}>
+            <Popup>Your Location</Popup>
+          </Marker>
+        )}
+
+        {shortestPath[1] && (
+          <Marker
+            position={
+              data.nodes.find(
+                (node) => node.name === shortestPath[shortestPath.length - 1]
+              )?.coordinates as LatLngTuple
+            }
+            icon={endIcon}
+          >
+            <Popup>Destination</Popup>
+          </Marker>
         )}
       </MapContainer>
     </div>
